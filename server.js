@@ -1,27 +1,3 @@
-/*
-- create and clone down a github repository
-- touch server.js
-- npm init
-- npm install -S express dotenv cors
-- setup the server.js file
-  - load the packages
-  - create the app
-  - create routes
-  - start the server
-- THEN work on your routes
-*/
-
-/*
-The Environment: the collection of all variables that belong the the terminal window your code is running in
-I want to use the PORT the computer wants me to use since the port is a computerish thing
-I will pick my port from the environment.
-creating a variable in your terminal's env is `export VARNAME=value`
-It is semantic to name your variables in all caps
-If I want to look at the env variables in the terminal type: `env`
-if I want to see them in javascript: `process.env.VARNAME`
-As devs, we can save our environment variables in a file called `.env`
-When data is sent from the client to the back end it comes in a property: `request.query`
-*/
 
 
 // ============== Packages ==============================
@@ -29,7 +5,6 @@ When data is sent from the client to the back end it comes in a property: `reque
 const express = require('express');
 const cors = require('cors'); // just kinda works and we need it
 // If this line of code comes, delete it const { response } = require('express');
-const superagent = require('superagent');
 const superagent = require('superagent');
 require('dotenv').config(); // read the `.env` file's saved env variables AFTER reading the terminal's real env's variables
 
@@ -40,28 +15,34 @@ const app = express(); // express() will return a fully ready to run server obje
 app.use(cors()); // enables local processes to talk to the server // Cross Origin Resource Sharing
 
 const PORT = process.env.PORT || 3000; // process.env is boilerplace the variable name is potato
+const GEOCODE_API_KEY = process.env.GEOCODE_API_KEY
+const WEATHER_API_KEY= process.env.WEATHER_API_KEY
+const PARKS_API_KEY = process.env.PARKS_API_KEY
+
+
 console.log(process.env.candy);
 
 
 // ============== Routes ================================
 
+/////////////////// LOCATION INFORMATION ///////////////////
 app.get('/location', handleGetLocation);
-
 function handleGetLocation(req, res){
-  // console.log(req, res);
   const city = req.query.city
+  const url = `https://us1.locationiq.com/v1/search.php?key=${GEOCODE_API_KEY}&q=${city}&format=json`; // Change token Key
 
-  const url = 'https://us1.locationiq.com/v1/search.php?key=GEOCODE_API_KEY&q=${city}&format=json'; // Change token Key
-
-  superagent.get(url).then(loaction_api_information => {
-    console.log(loaction_api_information)
-    const output = new LocationKit(loaction_api_information, req.query.city)
-
+  superagent.get(url) 
+    .then(loaction_api_information => {
+    const output = new LocationKit(loaction_api_information.body, city)
+    // console.log(output)
     res.send(output);  
+    
 })
+.catch(errorThatComesBack => {
+  // console.log(errorThatComesBack);
+  res.status(500).send('Sorry something went wrong');
+}); 
 }
-
-
 function LocationKit(dataFromTheFile, cityName){
   this.search_query = cityName;
   this.formatted_query = dataFromTheFile[0].display_name;
@@ -69,26 +50,56 @@ function LocationKit(dataFromTheFile, cityName){
   this.longitude = dataFromTheFile[0].lon;
 }
 
-
-
+/////////////////// WEATHER INFORMATION ///////////////////
 app.get('/weather', handleGetWeather);
+function handleGetWeather(req, res) {
+  const weather = req.query.search_query
+  const url = `https://api.weatherbit.io/v2.0/forecast/daily?city=${weather}&key=${WEATHER_API_KEY}`; // Change token Key
 
-function handleGetWeather(req, res){
-  const dataFromTheFile = require('./data/weather.json');
-
-    const output = []
-    dataFromTheFile.data.forEach(dayOfWeek => {
-      output.push(new WeatherKit(dayOfWeek));
-    })
-  
+  superagent.get(url) 
+  .then(weather_api_information => {
+  const output = weather_api_information.body.data.map(weather_info => new WeatherKit(weather_info))
+  // console.log(output)
   res.send(output);
+
+})
+.catch(errorThatComesBack => {
+  console.log(errorThatComesBack);
+  res.status(500).send('Sorry something went wrong');
+}); 
 }
-
-
 function WeatherKit(object) {
   this.forecast =  object.weather.description;
   this.time = object.valid_date;
 }
+
+
+/////////////////// PARKS INFORMATION ///////////////////
+app.get('/parks', handleGetParks);
+function handleGetParks(req, res) {
+  const parkCode = req.query.formatted_query;
+  const url = `https://developer.nps.gov/api/v1/parks?limit=2&start=0&q=${parkCode}&sort=&api_key=${PARKS_API_KEY}`; // Change token Key
+
+  superagent.get(url) 
+  .then(park_api_information => {
+  const output = park_api_information.body.data.map((park_info => new ParkKit(park_info)))
+  // console.log(output)
+  res.send(output);
+
+})
+.catch(errorThatComesBack => {
+  console.log(errorThatComesBack);
+  res.status(500).send('Sorry something went wrong');
+}); 
+}
+function ParkKit (object){
+  this.name = object.fullName;
+  this.address = object.addresses[0].line1;
+  this.fee = object.entranceFees[0].cost;
+  this.description = object.description;
+  this.url = object.url;
+}
+
 
 
 // ============== Initialization ========================
