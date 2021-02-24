@@ -49,14 +49,16 @@ app.get('/location', handleGetLocation);
 
 function handleGetLocation(req, res){
   // console.log(req, res);
-  console.log(req.query); // {city: seattle} /// req.query.city : seattle
-  const dataFromTheFile = require('./data/location.json'); // in an express server, we can synchronously get data from a local json file without a .then
+  const city = req.query.city
+
   const url = 'https://us1.locationiq.com/v1/search.php?key=GEOCODE_API_KEY&q=${city}&format=json'; // Change token Key
 
-  superagent.get(url)
-  const output = new LocationKit(dataFromTheFile, req.query.city);
+  superagent.get(url).then(loaction_api_information => {
+    console.log(loaction_api_information)
+    const output = new LocationKit(loaction_api_information, req.query.city)
 
-  res.send(output);
+    res.send(output);  
+})
 }
 
 
