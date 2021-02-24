@@ -29,6 +29,8 @@ When data is sent from the client to the back end it comes in a property: `reque
 const express = require('express');
 const cors = require('cors'); // just kinda works and we need it
 // If this line of code comes, delete it const { response } = require('express');
+const superagent = require('superagent');
+const superagent = require('superagent');
 require('dotenv').config(); // read the `.env` file's saved env variables AFTER reading the terminal's real env's variables
 
 
@@ -49,8 +51,9 @@ function handleGetLocation(req, res){
   // console.log(req, res);
   console.log(req.query); // {city: seattle} /// req.query.city : seattle
   const dataFromTheFile = require('./data/location.json'); // in an express server, we can synchronously get data from a local json file without a .then
+  const url = 'https://us1.locationiq.com/v1/search.php?key=GEOCODE_API_KEY&q=${city}&format=json'; // Change token Key
 
-
+  superagent.get(url)
   const output = new LocationKit(dataFromTheFile, req.query.city);
 
   res.send(output);
